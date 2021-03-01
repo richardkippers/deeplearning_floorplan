@@ -1,5 +1,5 @@
 """
-Misc. functions for ML 
+Evaluation function
 @author: r.kippers, 2021
 """
 
@@ -10,6 +10,12 @@ def iou(y_true, y_pred):
     """
     The iou function calculate the Intersection Over Union (IOU) between 
     the ground truth (y_true) and the predicted output (y_pred)
+
+    y_true : ndarray
+        True labels
+    y_pred : ndarray
+        Predicted labels
+
     """
     def f(y_true, y_pred):
         intersection = (y_true * y_pred).sum()

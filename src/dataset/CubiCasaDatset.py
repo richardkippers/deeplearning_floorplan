@@ -12,7 +12,7 @@ import numpy as np
 
 class CubiCasaDatset():
 
-    def __init__(self,split=0.2):
+    def __init__(self,split=0.2,preserve_aspect_ratio=False):
         """
         Dataset class for semantic segmentation 
 
@@ -20,12 +20,15 @@ class CubiCasaDatset():
         ----------
         split : float
             Split ratio train/test data 
+        preserve_aspect_ratio : boolean
+            Preserve aspect ratio
         """
 
         # Dictionary for image and mask paths
         self.data = defaultdict()
         self.image_size = 512
         self.split = split 
+        self.preserve_aspect_ratio = preserve_aspect_ratio
         
         image_folder_paths = [list(map(lambda x : 'input/cubicasa5k/' + folder + "/" + x, os.listdir("input/cubicasa5k/" + folder))) for folder in ["colorful", "high_quality", "high_quality_architectural"]]
         image_folder_paths = list(itertools.chain(*image_folder_paths))
@@ -72,7 +75,7 @@ class CubiCasaDatset():
         ----------
         image_path : string
             Path to image 
-
+        
         Output
         ------
         tf.image 
@@ -83,7 +86,10 @@ class CubiCasaDatset():
         image = tf.image.decode_png(image,channels=1) # output grayscale 
         image_shape = image.shape[0:2]
         #image = tf.image.convert_image_dtype(image, tf.float32)
-        image = tf.image.resize(image, [self.image_size, self.image_size])
+        if self.preserve_aspect_ratio: 
+            image = tf.image.resize_with_pad(image, self.image_size, self.image_size)
+        else: 
+            image = tf.image.resize(image, [self.image_size, self.image_size])
         return image, image_shape
 
     def load_mask(self, mask_path, image_original_shape):
@@ -105,7 +111,12 @@ class CubiCasaDatset():
         svg_parser = CubiCasaSvgReader(mask_path,image_original_shape)
         svg_parser.read()
         mask = tf.convert_to_tensor(svg_parser.get_walls())
-        mask = tf.reshape(mask, (image_original_shape[0], image_original_shape[1], 1))
+        mask = tf.reshape(mask, (mask.shape[0], mask.shape[1], 1))
+        if self.preserve_aspect_ratio:
+            mask = tf.image.resize_with_pad(mask, image_original_shape[0], image_original_shape[1])
+        else: 
+            mask = tf.image.resize(mask, (image_original_shape[0], image_original_shape[1]))
+
         mask = tf.image.resize(mask, [self.image_size, self.image_size])
         return mask
 
