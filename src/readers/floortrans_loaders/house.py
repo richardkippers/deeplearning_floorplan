@@ -468,7 +468,17 @@ class House:
                 #X, Y = get_points(e)
                 X, Y = None, None 
                 try: 
-                    X, Y = get_panel_points(e)
+                    X_0, Y_0 = get_panel_points(e)
+                    X_1, Y_1 = get_points(e)
+
+                    min_x = min(X_0.min(), X_1.min())
+                    max_x = max(X_0.max(), X_1.max())
+                    min_y = min(Y_0.min(), Y_1.min())
+                    max_y = max(Y_0.max(), Y_1.max())
+
+                    X = np.array([min_x, min_x, max_x, max_x])
+                    Y = np.array([min_y, max_y, min_y, max_y])
+
                 except: 
                     X, Y = get_points(e)
                 
