@@ -45,3 +45,15 @@ class CubiCasaSvgReader():
     walls[walls > 0] = 1
     return walls
 
+
+  def get_openings(self):
+    """
+    Get openings (door or window) from vector file
+
+    Output
+    ------
+    list
+      List [type, bbox]   bbox=(x,y,height,width)
+    """
+    return self.house.representation['openings']
+

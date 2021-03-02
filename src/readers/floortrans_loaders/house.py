@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from readers.floortrans_loaders.svg_utils import PolygonWall, get_polygon, calc_distance, get_room_number, get_icon, get_icon_number, get_points, get_direction, get_gaussian2D
+from readers.floortrans_loaders.svg_utils import PolygonWall, get_polygon, calc_distance, get_room_number, get_icon, get_icon_number, get_points, get_panel_points, get_direction, get_gaussian2D
 from xml.dom import minidom
 from skimage.draw import polygon
 import cv2
@@ -379,7 +379,7 @@ class House:
                                 'right': [],
                                 'up': [],
                                 'down': []}
-        self.representation = {'doors': [],
+        self.representation = {'openings': [],
                                'icons': [],
                                'labels': [],
                                'walls': []}
@@ -417,83 +417,105 @@ class House:
                 X, Y = get_points(e)
                 rr, cc = polygon(X, Y)
                 cc, rr = self._clip_outside(cc, rr)
-                direction = get_direction(X, Y)
+                #direction = get_direction(X, Y)
                 locs = np.column_stack((X, Y))
-                if direction == 'H':
-                    left_index = np.argmin(locs[:, 0])
-                    left1 = locs[left_index]
-                    locs = np.delete(locs, left_index, axis=0)
-                    left_index = np.argmin(locs[:, 0])
-                    left2 = locs[left_index]
-                    right = np.delete(locs, left_index, axis=0)
-                    left = np.array([left1, left2])
+                
+                x = locs[:,0].min()
+                y = locs[:,1].min() 
+                width = locs[:,0].max() - x 
+                height = locs[:,1].max() - y 
 
-                    point_left = left.mean(axis=0)
-                    point_right = right.mean(axis=0)
-                    self.opening_corners['left'].append(point_left)
-                    self.opening_corners['right'].append(point_right)
+                self.representation['openings'].append(['window', [x,y,width,height]]) #bbox
 
-                    door_rep = [[list(point_left), list(point_right)], ['door', 1, 1]]
-                    self.representation['doors'].append(door_rep)
-                else:
-                    up_index = np.argmin(locs[:, 1])
-                    up1 = locs[up_index]
-                    locs = np.delete(locs, up_index, axis=0)
-                    up_index = np.argmin(locs[:, 1])
-                    up2 = locs[up_index]
-                    down = np.delete(locs, up_index, axis=0)
-                    up = np.array([up1, up2])
 
-                    point_up = up.mean(axis=0)
-                    point_down = down.mean(axis=0)
-                    self.opening_corners['up'].append(point_up)
-                    self.opening_corners['down'].append(point_down)
+                # if direction == 'H':
+                #     left_index = np.argmin(locs[:, 0])
+                #     left1 = locs[left_index]
+                #     locs = np.delete(locs, left_index, axis=0)
+                #     left_index = np.argmin(locs[:, 0])
+                #     left2 = locs[left_index]
+                #     right = np.delete(locs, left_index, axis=0)
+                #     left = np.array([left1, left2])
 
-                    door_rep = [[list(point_up), list(point_down)], ['door', 1, 1]]
-                    self.representation['doors'].append(door_rep)
+                #     point_left = left.mean(axis=0)
+                #     point_right = right.mean(axis=0)
+                #     self.opening_corners['left'].append(point_left)
+                #     self.opening_corners['right'].append(point_right)
+
+                #     door_rep = [[list(point_left), list(point_right)], ['window', 1, 1]]
+                #     self.representation['doors'].append(door_rep)
+                # else:
+                #     up_index = np.argmin(locs[:, 1])
+                #     up1 = locs[up_index]
+                #     locs = np.delete(locs, up_index, axis=0)
+                #     up_index = np.argmin(locs[:, 1])
+                #     up2 = locs[up_index]
+                #     down = np.delete(locs, up_index, axis=0)
+                #     up = np.array([up1, up2])
+
+                #     point_up = up.mean(axis=0)
+                #     point_down = down.mean(axis=0)
+                #     self.opening_corners['up'].append(point_up)
+                #     self.opening_corners['down'].append(point_down)
+
+                #     door_rep = [[list(point_up), list(point_down)], ['window', 1, 1]]
+                #     self.representation['doors'].append(door_rep)
 
                 self.icons[cc, rr] = 1
                 self.icon_types.append(1)
 
             if e.getAttribute("id") == "Door":
-                # How to reperesent empty door space
-                X, Y = get_points(e)
+                #X, Y = get_points(e)
+                X, Y = None, None 
+                try: 
+                    X, Y = get_panel_points(e)
+                except: 
+                    X, Y = get_points(e)
+                
                 rr, cc = polygon(X, Y)
                 cc, rr = self._clip_outside(cc, rr)
-                direction = get_direction(X, Y)
+                #direction = get_direction(X, Y)
                 locs = np.column_stack((X, Y))
-                if direction == 'H':
-                    left_index = np.argmin(locs[:, 0])
-                    left1 = locs[left_index]
-                    locs = np.delete(locs, left_index, axis=0)
-                    left_index = np.argmin(locs[:, 0])
-                    left2 = locs[left_index]
-                    right = np.delete(locs, left_index, axis=0)
-                    left = np.array([left1, left2])
+                
+                x = locs[:,0].min()
+                y = locs[:,1].min() 
+                width = locs[:,0].max() - x 
+                height = locs[:,1].max() - y 
 
-                    point_left = left.mean(axis=0)
-                    point_right = right.mean(axis=0)
-                    self.opening_corners['left'].append(left.mean(axis=0))
-                    self.opening_corners['right'].append(right.mean(axis=0))
+                self.representation['openings'].append(['door', [x,y,width,height]]) #bbox
 
-                    door_rep = [[list(point_left), list(point_right)], ['door', 1, 1]]
-                    self.representation['doors'].append(door_rep)
-                else:
-                    up_index = np.argmin(locs[:, 1])
-                    up1 = locs[up_index]
-                    locs = np.delete(locs, up_index, axis=0)
-                    up_index = np.argmin(locs[:, 1])
-                    up2 = locs[up_index]
-                    down = np.delete(locs, up_index, axis=0)
-                    up = np.array([up1, up2])
+                # if direction == 'H':
+                #     left_index = np.argmin(locs[:, 0])
+                #     left1 = locs[left_index]
+                #     locs = np.delete(locs, left_index, axis=0)
+                #     left_index = np.argmin(locs[:, 0])
+                #     left2 = locs[left_index]
+                #     right = np.delete(locs, left_index, axis=0)
+                #     left = np.array([left1, left2])
 
-                    point_up = up.mean(axis=0)
-                    point_down = down.mean(axis=0)
-                    self.opening_corners['up'].append(up.mean(axis=0))
-                    self.opening_corners['down'].append(down.mean(axis=0))
+                #     point_left = left.mean(axis=0)
+                #     point_right = right.mean(axis=0)
+                #     self.opening_corners['left'].append(left.mean(axis=0))
+                #     self.opening_corners['right'].append(right.mean(axis=0))
 
-                    door_rep = [[list(point_up), list(point_down)], ['door', 1, 1]]
-                    self.representation['doors'].append(door_rep)
+                #     door_rep = [[list(point_left), list(point_right)], ['door', 1, 1]]
+                #     self.representation['doors'].append(door_rep)
+                # else:
+                #     up_index = np.argmin(locs[:, 1])
+                #     up1 = locs[up_index]
+                #     locs = np.delete(locs, up_index, axis=0)
+                #     up_index = np.argmin(locs[:, 1])
+                #     up2 = locs[up_index]
+                #     down = np.delete(locs, up_index, axis=0)
+                #     up = np.array([up1, up2])
+
+                #     point_up = up.mean(axis=0)
+                #     point_down = down.mean(axis=0)
+                #     self.opening_corners['up'].append(up.mean(axis=0))
+                #     self.opening_corners['down'].append(down.mean(axis=0))
+
+                #     door_rep = [[list(point_up), list(point_down)], ['door', 1, 1]]
+                #     self.representation['doors'].append(door_rep)
 
                 self.icons[cc, rr] = 2
                 self.icon_types.append(2)

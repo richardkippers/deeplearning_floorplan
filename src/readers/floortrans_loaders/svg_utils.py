@@ -270,6 +270,22 @@ def get_points(e):
 
     return X, Y
 
+def get_panel_points(e):
+    #author: r.kippers
+    panel = next(p for p in e.childNodes if p.getAttribute('id') == "Panel")
+    path = panel.getElementsByTagName("path")[0].getAttribute("d")
+
+    path_alt = parse_path(path)
+    min_x, max_x, min_y, max_y = path_alt.bbox()
+
+    X = [min_x, min_x, max_x, max_x] 
+    Y = [min_y, max_y, min_y, max_y]
+
+    X, Y = np.array(X), np.array(Y)
+
+    return X, Y
+
+
 
 def get_direction(X, Y):
     max_diff_X = abs(max(X) - min(X))
