@@ -10,8 +10,6 @@ from readers.svg_reader import CubiCasaSvgReader
 import tensorflow as tf
 import numpy as np
 
-from dataset.bbox_utils import swap_xy, convert_to_xywh, convert_to_corners, compute_iou
-
 cubicasa_openings_dict = { 
     "window":0,
     "door":1
@@ -19,7 +17,7 @@ cubicasa_openings_dict = {
 
 class CubiCasaDatset():
 
-    def __init__(self,split=0.2,preserve_aspect_ratio=False):
+    def __init__(self,split=0.2,image_channels=1, preserve_aspect_ratio=False):
         """
         Dataset class for CubiCasa5K for semantic segmentation and 
         object detection in TF 2 / Keras
@@ -28,6 +26,8 @@ class CubiCasaDatset():
         ----------
         split : float
             Split ratio train/test data 
+        image_channels : int
+            Number of channels for input image (1 for greyscale, 3 for RGB)
         preserve_aspect_ratio : boolean
             Preserve aspect ratio
         """
@@ -36,6 +36,7 @@ class CubiCasaDatset():
         self.data = defaultdict()
         self.image_size = 512
         self.split = split 
+        self.image_channels = image_channels
         self.preserve_aspect_ratio = preserve_aspect_ratio
         
         image_folder_paths = [list(map(lambda x : 'input/cubicasa5k/' + folder + "/" + x, os.listdir("input/cubicasa5k/" + folder))) for folder in ["colorful", "high_quality", "high_quality_architectural"]]
@@ -107,7 +108,7 @@ class CubiCasaDatset():
             Original image shape (x,y)
         """
         image = tf.io.read_file(image_path)
-        image = tf.image.decode_png(image,channels=1) # output grayscale 
+        image = tf.image.decode_png(image,channels=self.image_channels)
         image_shape = image.shape[0:2]
         # if self.preserve_aspect_ratio: 
         #     image = tf.image.resize_with_pad(image, self.image_size, self.image_size)
@@ -189,6 +190,7 @@ class CubiCasaDatset():
             bbox[3] = bbox[3] * scale_factor_y
             bboxes = np.vstack([bboxes, bbox])
 
+        bboxes = tf.convert_to_tensor(bboxes, dtype=tf.float32)
         return y, bboxes
         
 
@@ -219,7 +221,7 @@ class CubiCasaDatset():
 
     def _tf_do_get_wall_mask(self,i):
         """Todo write docs"""
-        sample = self.get_sample(i)
+        sample = self.get_sample(i, include_wall_mask=True)
         return sample["image"], sample["wall_mask"]
 
     def tf_parse_wall_mask(self,i):
@@ -228,4 +230,43 @@ class CubiCasaDatset():
         x.set_shape([self.image_size, self.image_size, 1])
         y.set_shape([self.image_size, self.image_size, 1])
         return x,y
+
+
+    def get_tf_dataset_openings(self, split_set, batch=8):
+        """
+        Returns TensorFlow dataset for openigns bboxes
+
+        Parameters
+        ----------
+        split_set : string
+            training or validation 
+        """
+
+        num_samples = len(self.data.keys())
+
+        if split_set == "training":
+            indices = [i for i in range(0, np.floor(num_samples * (1- self.split)).astype('int'))]
+        else: 
+            indices = [i for i in range(np.ceil(num_samples * (1- self.split)).astype('int'), num_samples)]
+
+        dataset = tf.data.Dataset.from_tensor_slices((indices))
+        dataset = dataset.map(self.tf_parse_openings) 
+        #dataset = dataset.batch(batch)
+        dataset = dataset.repeat() 
+        return dataset 
+
+    def _tf_do_get_openings(self, i): 
+        """Todo write docstring"""
+        sample = self.get_sample(i, include_openings=True)
+        image = sample["image"]
+        #image = tf.expand_dims(image,axis=2)
+        return image, sample["openings_bbox"], sample["openings_class"]
+
+    def tf_parse_openings(self,i):
+        """Todo write docs"""
+        x,y,z = tf.numpy_function(self._tf_do_get_openings, [i] , [tf.float32, tf.float32, tf.int32])
+        x.set_shape([None,None, 3])
+        y.set_shape([None,4])
+        z.set_shape([None])
+        return x,y,z
 
