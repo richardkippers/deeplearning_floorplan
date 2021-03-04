@@ -11,8 +11,8 @@ import tensorflow as tf
 import numpy as np
 
 cubicasa_openings_dict = { 
-    "window":0,
-    "door":1
+    "window":1,
+    "door":2
 }
 
 class CubiCasaDatset():
@@ -178,7 +178,10 @@ class CubiCasaDatset():
         openings = svg_parser.get_openings() 
         openings = np.array(openings,dtype=object)
 
-        y = tf.cast(np.vectorize(cubicasa_openings_dict.get)(openings[:,0]),tf.int32)
+        y = tf.cast([], tf.int32)
+        
+        if openings.shape[0] != 0: 
+            y = tf.cast(np.vectorize(cubicasa_openings_dict.get)(openings[:,0]),tf.int32)
         
         bboxes = np.zeros((0,4))
         for i in range(len(openings)):
