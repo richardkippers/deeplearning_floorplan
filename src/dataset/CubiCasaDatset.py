@@ -69,10 +69,11 @@ class CubiCasaDatset():
         Output
         ------
         object {
-            folder_path (string), image (tensor), wall_mask (tensor), openings_class (tensor) openings_bbox (tensor)
+            folder_path (string), image_path (string), image (tensor), 
+            wall_mask (tensor), openings_class (tensor) openings_bbox (tensor)
         }
         """
-
+        
         image, img_orig_shape = self.load_image(self.data[index]["image_path"])
 
         wall_mask, openings_y, openings_bbox = None, None, None
@@ -85,6 +86,7 @@ class CubiCasaDatset():
 
         return {
             "folder_path": self.data[index]["folder_path"],
+            "image_path": self.data[index]["image_path"],
             "image":image,
             "wall_mask":wall_mask,
             "openings_class":openings_y, 
