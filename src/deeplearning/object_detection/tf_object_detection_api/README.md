@@ -22,8 +22,6 @@ if "models" in pathlib.Path.cwd().parts:
 elif not pathlib.Path('models').exists():
   !git clone --depth 1 https://github.com/tensorflow/models
 
-# Copy labels file 
-! cp deeplearning/object_detection/tf_object_detection_api/openings_label_map.pbtxt
 
 # Install plugins
 ! pip install svgpathtools
@@ -50,6 +48,9 @@ elif not pathlib.Path('models').exists():
 ! mkdir input
 ! mv cubicasa5k input/cubicasa5k
 ! mkdir files
+
+# Copy labels file 
+! cp deeplearning/object_detection/tf_object_detection_api/openings_label_map.pbtxt
 
 ```
 
