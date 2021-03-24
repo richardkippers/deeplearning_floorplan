@@ -12,3 +12,4 @@ dependencies:
     - opencv-python==4.5.1.48 
     - pylint 
     - scikit-image
+    - rasterio
