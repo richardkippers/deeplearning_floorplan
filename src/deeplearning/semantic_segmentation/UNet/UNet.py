@@ -1,7 +1,7 @@
 """
 UNet implementation for Tensorflow
 Source: https://idiotdeveloper.com/polyp-segmentation-using-unet-in-tensorflow-2/
-@author: r.kippers, 2019 
+@author: r.kippers, 2021 
 """
 
 import tensorflow as tf
