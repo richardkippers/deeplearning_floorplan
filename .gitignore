@@ -140,3 +140,9 @@ cython_debug/
 # Data 
 input/*
 retinanet/
+
+# Tensorflow Models 
+tf/models/*
+
+# TF Weights
+weights/*

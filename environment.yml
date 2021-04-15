@@ -5,11 +5,17 @@ channels:
 dependencies:
   - python=3.8.5
   - numpy
+  - tesseract
   - pip:
     - tensorboard==2.4.1
     - tensorflow==2.4.0
     - svgpathtools==1.4.1
     - opencv-python==4.5.1.48 
+    - opencv-contrib-python
     - pylint 
     - scikit-image
     - rasterio
+    - sklearn
+    - notebook
+    - pytesseract
+    - alphashape
