@@ -23,6 +23,10 @@ def point_to_line_dist(point, line):
     float: The minimum distance to a point.
     
     """
+        
+    if list(line[1]) == list(line[0]):
+        line[1] += 1 # fix line with same start- and endpoint
+    
     # unit vector
     unit_line = line[1] - line[0]
     norm_unit_line = unit_line / np.linalg.norm(unit_line)
