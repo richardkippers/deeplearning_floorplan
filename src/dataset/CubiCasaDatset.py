@@ -115,6 +115,7 @@ class CubiCasaDatset():
         image_shape = image.shape[0:2]
         if self.image_size != None: 
             image = tf.image.resize(image, [self.image_size, self.image_size])
+            image_shape = image.shape
         return image, image_shape
 
     def load_mask(self, vector_path, image_original_shape, mask_type):
@@ -236,7 +237,7 @@ class CubiCasaDatset():
         """Todo write docs"""
         x,y = tf.numpy_function(self._tf_do_get_wall_mask, [i] , [tf.float32, tf.float32])
         if self.image_size != None:
-            x.set_shape([self.image_size, self.image_size, 1])
+            x.set_shape([self.image_size, self.image_size, self.image_channels])
             y.set_shape([self.image_size, self.image_size, 1])
         return x,y
 
