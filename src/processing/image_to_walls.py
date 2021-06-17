@@ -8,16 +8,16 @@ import numpy as np
 import cv2
 from shapely.geometry import LineString, Polygon, MultiPolygon, GeometryCollection
 
-from processing.utils.point_to_line_dist import point_to_line_dist
 from processing.utils.line_angle import calculate_angle
 
 class ImageToWalls():
     
-    def __init__(self):
+    def __init__(self, image_size=512, kernel_size=5):
         """
         This function converts binary images to individual walls (polygons)
         """
-        
+        self.image_size=image_size
+        self.kernel_size = kernel_size
     
     def do_steps(self, image_prediction):
         """
@@ -59,14 +59,18 @@ class ImageToWalls():
             512*512 binary image
         """
         
-        kernel = np.ones((5,5),np.uint8)
+        kernel = np.ones((self.kernel_size,self.kernel_size),np.uint8)
         closing = cv2.morphologyEx(np.float32(image), cv2.MORPH_CLOSE, kernel)
 
         dilation = cv2.dilate(closing,kernel,iterations = 1)
 
-        erosion = cv2.erode(dilation,kernel,iterations = 1)
+        closing2 = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel)
 
-        gray = cv2.cvtColor(np.flip(np.repeat(erosion.reshape(512,512,1),3, axis=2),axis=0), cv2.COLOR_BGR2GRAY).astype('uint8')
+        erosion = cv2.erode(closing2,kernel,iterations = 1)
+
+        dilation2 = cv2.dilate(erosion,np.ones((2,2)),iterations = 3)
+
+        gray = cv2.cvtColor(np.flip(np.repeat(dilation2.reshape(self.image_size,self.image_size,1),3, axis=2),axis=0), cv2.COLOR_BGR2GRAY).astype('uint8')
 
         gray = np.flip(gray, axis=0)
         
@@ -213,7 +217,7 @@ class ImageToWalls():
         point : tuple
         
         """
-        max_y = 0
+        max_y = -np.inf 
         min_x_for_y = np.inf
 
         for linestring in linestrings:
@@ -249,8 +253,8 @@ class ImageToWalls():
 
         point_with_highest_angle = None
         max_x_delta_point = None
-        highest_angle = 0
-        max_x_delta = 0
+        highest_angle = -1
+        max_x_delta = -1
 
         for linestring in linestrings:
             i = None
@@ -315,7 +319,7 @@ class ImageToWalls():
         
         walls = [] # result
 
-        for _iterator in range(10000): # range to prevent infinite things
+        for _iterator in range(int(1e5)): # range to prevent infinite things
             
             if all_walls_poly.area < 0.1:
                 break
@@ -335,9 +339,8 @@ class ImageToWalls():
             
             # Create line with same angle, move x (to left and to right, stop at first intersection) 
             # direction depends on the other point's x coordinate
-            
             direction = -1 if point_with_highest_angle[0] < top_left[0] else 1 
-            
+
             for x_indent in range(1,512):
                 
                 x_indent = x_indent * direction
@@ -355,40 +358,44 @@ class ImageToWalls():
                     (point_with_highest_angle[0], point_with_highest_angle[1])
                 ))
                 
+                if not move_poly.is_valid: 
+                    move_poly = move_poly.buffer(0)
+
                 if np.abs(all_walls_poly.intersection(move_poly).area - move_poly.area) > 0.01:
                     x_indent-= (1*direction) # set 1 back
                     break
             
-            if x_indent != 0: 
-                # Sucesfully found new wall, generate the new wall
-                top_y = top_left[1]
-                top_x = top_left[0] 
-                bottom_y =  point_with_highest_angle[1]
-                bottom_x =  point_with_highest_angle[0] 
-                wall = Polygon((
-                    (bottom_x, bottom_y), 
-                    (top_x, top_y), 
-                    (top_x + x_indent, top_y), 
-                    (bottom_x+x_indent,bottom_y)
-                ))
-            else:
+            # Sucesfully found new wall, generate the new wall
+            top_y = top_left[1]
+            top_x = top_left[0] 
+            bottom_y =  point_with_highest_angle[1]
+            bottom_x =  point_with_highest_angle[0] 
+            wall = Polygon((
+                (bottom_x, bottom_y), 
+                (top_x, top_y), 
+                (top_x + x_indent, top_y), 
+                (bottom_x+x_indent,bottom_y)
+            ))
+
+            if wall.area < 0.5:
                 # Not possibble to create wall, 
                 # new wall is intersection for bbox around 
                 # extreme points around + top_left (pois)
-                
+
                 pois = np.array((
                     top_left,
                     point_with_highest_angle,
                     max_x_delta_point
                 ))
                 
-                bbox = Polygon((  
+                bbox = Polygon((
                     (pois[:,0].min(), pois[:,1].min()),
                     (pois[:,0].min(), pois[:,1].max()),
                     (pois[:,0].max(), pois[:,1].max()),
                     (pois[:,0].max(), pois[:,1].min()),
                     (pois[:,0].min(), pois[:,1].min())
                 ))
+                
                 wall = all_walls_poly.intersection(bbox)
                 
                 if type(wall) == GeometryCollection or type(wall) == MultiPolygon:
@@ -400,9 +407,10 @@ class ImageToWalls():
                             max_wall_area_i = o_i
                             max_wall_area = o.area
                     wall = wall[max_wall_area_i]
-                    
-            all_walls_poly = all_walls_poly.symmetric_difference(wall)
+                
             
+
+            all_walls_poly = all_walls_poly.symmetric_difference(wall)
             wall_unsimplified = wall
             wall = wall.simplify(2,preserve_topology=False)
             

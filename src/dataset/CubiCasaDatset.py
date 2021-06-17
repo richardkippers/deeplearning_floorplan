@@ -115,9 +115,8 @@ class CubiCasaDatset():
         image_shape = image.shape[0:2]
         if self.image_size != None: 
             image = tf.image.resize(image, [self.image_size, self.image_size])
-            image_shape = image.shape
         return image, image_shape
-
+    
     def load_mask(self, vector_path, image_original_shape, mask_type):
         """
         Load Wall Mask as Tensor
